@@ -2,13 +2,21 @@
 
 namespace Tiknil\SvgSprite;
 
-use Symfony\Component\Console\Application;
+$idPrefix = "";
 
-$version = \Composer\InstalledVersions::getPrettyVersion('tiknil/svg-sprite');
+// Search prefix
+for ($i = 1; $i < $argc - 1; $i++) {
+    if ($argv[$i] === '--prefix' || $argv[$i] === '-p') {
+        $idPrefix = $argv[$i+1];
 
-$app = new Application("Tiknil svg sprite", $version ?? 'dev');
+        array_splice($argv, $i, 2);
+        break;
+    }
+}
 
-$cmd = new BundleSprite();
-$app->add($cmd);
-$app->setDefaultCommand($cmd->getName(), true);
-$app->run();
+$svgDirectory = $argv[1];
+$outputSprite = $argv[2];
+
+$cmd = new BundleSprite($svgDirectory, $outputSprite, $idPrefix);
+
+return $cmd->execute();

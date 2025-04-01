@@ -3,63 +3,53 @@
 namespace Tiknil\SvgSprite;
 
 
-use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-
-#[AsCommand('svg-sprite')]
-class BundleSprite extends Command
+class BundleSprite
 {
-    protected function configure(): void
+    public function __construct(
+        private string $folder,
+        private string $outFile,
+        private string $prefix = ""
+    )
     {
-        $this
-            ->addArgument('folder', InputArgument::REQUIRED, 'The directory with the svg files')
-            ->addArgument('output', InputArgument::REQUIRED, 'The output file')
-            ->addOption('prefix', 'p', InputOption::VALUE_REQUIRED, 'Prefix added to fileName for each file');
     }
 
-
-    public function execute(InputInterface $input, OutputInterface $output): int
+    public function execute(): int
     {
-        $folder = $input->getArgument('folder');
-        $outFile = $input->getArgument('output');
-        $prefix = $input->getOption('prefix', '');
 
+        $this->print("Searching svg files in {$this->folder}");
 
-        $output->writeLn("Searching svg files in $folder");
-
-        $svgFiles = $this->svgFiles($folder);
+        $svgFiles = $this->svgFiles();
 
         $tot = count($svgFiles);
-        $output->writeLn("Found $tot svg files");
+        $this->print("Found $tot svg files");
 
 
-        $sprite = $this->createBundleDocument($folder, $svgFiles, $prefix);
-        $htmlString = $sprite->saveHTML();
-        file_put_contents($outFile, $htmlString);
+        $sprite = $this->createBundleDocument($svgFiles);
+        $htmlString = $sprite->saveHTMLFile($this->outFile);
 
-        $output->writeLn("Created sprite at $outFile");
+        $this->print("Created sprite at {$this->outFile}");
 
-
-        return self::SUCCESS;
+        return 0;
     }
 
-    private function idForFile(string $file, string $prefix = ""): string
+    private function print(string $msg)
+    {
+        echo "$msg\n";
+    }
+
+    private function idForFile(string $file): string
     {
         $baseName = pathinfo($file, PATHINFO_FILENAME);
         $sanitizedName = preg_replace('/[^a-zA-Z0-9_-]/', '-', $baseName);
-        return $prefix . $sanitizedName;
+        return $this->prefix . $sanitizedName;
     }
 
-    private function svgFiles(string $folder): array
+    private function svgFiles(): array
     {
         $svgFiles = [];
 
         // Get all files in the directory
-        $files = scandir($folder);
+        $files = scandir($this->folder);
 
         // Loop through each file
         foreach ($files as $fileName) {
@@ -68,7 +58,7 @@ class BundleSprite extends Command
                 continue;
             }
 
-            $filePath = $folder . DIRECTORY_SEPARATOR . $fileName;
+            $filePath = $this->folder . DIRECTORY_SEPARATOR . $fileName;
 
             // If it's a file (not a subdirectory)
             if (is_file($filePath)) {
@@ -82,10 +72,10 @@ class BundleSprite extends Command
         return $svgFiles;
     }
 
-    private function createBundleDocument(string $rootFolder, array $svgFiles, string $prefix): \DOMDocument
+    private function createBundleDocument(array $svgFiles): \DOMDocument
     {
-        $spriteDoc = new \DOMDocument('1.0', 'UTF-8');
-        $spriteDoc->preserveWhiteSpace = true;
+        $spriteDoc = new \DOMDocument();
+        $spriteDoc->preserveWhiteSpace = false;
         $spriteDoc->formatOutput = true;
 
         // Create the root SVG element for the sprite
@@ -96,11 +86,12 @@ class BundleSprite extends Command
         $spriteDoc->appendChild($rootSvg);
 
         foreach ($svgFiles as $file) {
-            $symbol = $this->convertFile($rootFolder . DIRECTORY_SEPARATOR . $file, $this->idForFile($file, $prefix));
+            $symbol = $this->convertFile($this->folder . DIRECTORY_SEPARATOR . $file, $this->idForFile($file));
 
             if (empty($symbol)) continue;
 
             $importedSymbol = $spriteDoc->importNode($symbol, true);
+            $rootSvg->appendChild($spriteDoc->createTextNode("\n\n"));
             $rootSvg->appendChild($importedSymbol);
         }
 
@@ -120,13 +111,13 @@ class BundleSprite extends Command
         $doc->formatOutput = true;
 
         // Load the SVG content
-        $doc->loadXML($svgContent, LIBXML_NOERROR);
+        $doc->loadXML($svgContent);
 
         // Get the root SVG element
         $svgElement = $doc->documentElement;
 
         if (!$svgElement || $svgElement->nodeName !== 'svg') {
-            $this->error("$filePath doesn't contain a valid SVG root element, skipping it");
+            $this->print("$filePath doesn't contain a valid SVG root element, skipping it");
             return null;
         }
 
