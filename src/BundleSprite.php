@@ -25,7 +25,12 @@ class BundleSprite
 
 
         $sprite = $this->createBundleDocument($svgFiles);
-        $htmlString = $sprite->saveHTMLFile($this->outFile);
+        $sprite->saveHTMLFile($this->outFile);
+
+        file_put_contents(
+            $this->outFile, 
+            str_replace('xmlns:default="http://www.w3.org/2000/svg" ', '', file_get_contents($this->outFile))
+        );
 
         $this->print("Created sprite at {$this->outFile}");
 
@@ -135,6 +140,14 @@ class BundleSprite
         } else if ($width && $height) {
             // Create viewBox from width and height if viewBox isn't present
             $symbolElement->setAttribute('viewBox', "0 0 $width $height");
+        }
+
+        foreach ($svgElement->attributes as $attr) {
+             if (in_array($attr->name, ['width', 'height', 'viewBox', 'class', 'id'])) {
+                continue; // Skip width, height, and viewBox attributes
+             }
+
+             $symbolElement->setAttribute($attr->name, $attr->value);
         }
 
         // Copy all child nodes from SVG to symbol

@@ -14,8 +14,13 @@ for ($i = 1; $i < $argc - 1; $i++) {
     }
 }
 
-$svgDirectory = $argv[1];
-$outputSprite = $argv[2];
+$svgDirectory = $argv[1] ?? null;
+$outputSprite = $argv[2] ?? null;
+
+if ($svgDirectory === null || $outputSprite === null) {
+    echo "Missing required arguments.\n\nUsage: php index.php [--prefix <id-prefix>] <svg-directory> <output-file>\n";
+    exit(1);
+}
 
 $cmd = new BundleSprite($svgDirectory, $outputSprite, $idPrefix);
 
