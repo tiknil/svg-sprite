@@ -2,17 +2,17 @@
 
 [Learn more about SVG Sprites and how to use them](https://css-tricks.com/svg-sprites-use-better-icon-fonts/)
 
-
 ## Installation
 
 ### Global installation
+
 ```
 composer global require tiknil/svg-sprite
 ```
 
 Make sure that the composer binaries directory is in your `$PATH`
 
-You can update Skipper to the latest version by running
+You can update svg-sprite to the latest version by running
 
 ```
 composer global update tiknil/svg-sprite
@@ -28,14 +28,14 @@ composer require tiknil/svg-sprite
 
 You can now invoke the command using `vendor/bin/svg-sprite`
 
-
 ### Usage
-
 
 ```bash
 svg-sprite <folder> <output>
 ```
+
 For example, in a laravel project:
+
 ```
 svg-sprite public/icons resources/views/sprite.blade.php
 ```
